@@ -375,6 +375,11 @@ var (
 		Name:  "permissioned",
 		Usage: "If enabled, the node will allow only a defined list of nodes to connect",
 	}
+	PrivateConfigPathFlag = cli.StringFlag{
+		Name:  "privateconfigpath",
+		Usage: "Path of thr constellation private config",
+		Value: "",
+	}
 	// Raft flags
 	RaftModeFlag = cli.BoolFlag{
 		Name:  "raft",

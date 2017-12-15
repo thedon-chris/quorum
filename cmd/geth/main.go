@@ -43,6 +43,7 @@ import (
 	"github.com/ethereum/go-ethereum/logger/glog"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
+	"github.com/ethereum/go-ethereum/private"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -157,6 +158,7 @@ participating.
 		utils.VoteMaxBlockTimeFlag,
 		utils.SingleBlockMakerFlag,
 		utils.EnableNodePermissionFlag,
+		utils.PrivateConfigPathFlag,
 		utils.RaftModeFlag,
 		utils.RaftBlockTime,
 	}
@@ -327,6 +329,11 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		if err != nil {
 			utils.Fatalf("Unable to unlock block maker key: %v", err)
 		}
+	}
+
+	if cfgPath := ctx.GlobalString(utils.PrivateConfigPathFlag.Name); cfgPath != "" {
+		private.SetCliCfgPath(cfgPath)
+		private.RegeneratePrivateConfig()
 	}
 
 	if err := ethereum.StartBlockVoting(client, voteKey, blockVoteKey); err != nil {

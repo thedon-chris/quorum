@@ -91,6 +91,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.SingleBlockMakerFlag,
 			utils.VoteMinBlockTimeFlag,
 			utils.VoteMaxBlockTimeFlag,
+			utils.PrivateConfigPathFlag,
 		},
 	},
 	{
