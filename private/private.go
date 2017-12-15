@@ -13,15 +13,30 @@ type PrivateTransactionManager interface {
 	Receive(data []byte) ([]byte, error)
 }
 
-func FromEnvironmentOrNil(name string) PrivateTransactionManager {
-	cfgPath := os.Getenv(name)
+var CliCfgPath = ""
+
+func SetCliCfgPath(cliCfgPath string) {
+	CliCfgPath = cliCfgPath
+}
+
+func FromCommandLineEnvironmentOrNil(name string) PrivateTransactionManager {
+	cfgPath := CliCfgPath
+	if cfgPath == "" {
+		cfgPath = os.Getenv(name)
+	}
 	if cfgPath == "" {
 		return nil
 	}
 	return constellation.MustNew(cfgPath)
 }
 
-var P = FromEnvironmentOrNil("PRIVATE_CONFIG")
+var P = FromCommandLineEnvironmentOrNil("PRIVATE_CONFIG")
+
+func RegeneratePrivateConfig() {
+	if P == nil {
+		P = FromCommandLineEnvironmentOrNil("PRIVATE_CONFIG")
+	}
+}
 
 func GetPayload(digestHex string) (string, error) {
 	if P == nil {
@@ -45,4 +60,3 @@ func GetPayload(digestHex string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("0x%x", data), nil
-}
