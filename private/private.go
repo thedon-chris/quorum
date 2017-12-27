@@ -60,3 +60,4 @@ func GetPayload(digestHex string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("0x%x", data), nil
+}
