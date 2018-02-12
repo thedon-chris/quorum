@@ -29,8 +29,6 @@ import (
 	"strings"
 	"time"
 
-	"log"
-
 	"github.com/ethereum/ethash"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
