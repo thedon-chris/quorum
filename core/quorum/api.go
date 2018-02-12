@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	Strategy BlockMakerStrategy
+	Strategy BlockVoteMakerStrategy
 )
 
 type PublicQuorumAPI struct {
@@ -106,14 +106,28 @@ func (api *PublicQuorumAPI) IsBlockMaker(addr common.Address) (bool, error) {
 
 func (api *PublicQuorumAPI) PauseBlockMaker() error {
 	if Strategy != nil {
-		return Strategy.Pause()
+		return Strategy.PauseBlockMaking()
 	}
 	return nil
 }
 
 func (api PublicQuorumAPI) ResumeBlockMaker() error {
 	if Strategy != nil {
-		return Strategy.Resume()
+		return Strategy.ResumeBlockMaking()
+	}
+	return nil
+}
+
+func (api PublicQuorumAPI) PauseVoting() error {
+	if Strategy != nil {
+		return Strategy.PauseVoting()
+	}
+	return nil
+}
+
+func (api PublicQuorumAPI) ResumeVoting() error {
+	if Strategy != nil {
+		return Strategy.ResumeVoting()
 	}
 	return nil
 }
