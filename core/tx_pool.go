@@ -293,7 +293,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 		return ErrInsufficientFunds
 	}
 
-	if pool.gasPrice.Cmp(tx.GasPrice() > 0){
+	if tx.GasPrice().Cmp(common.Big0) > 0 {
 		return ErrUnderpriced
 	}
 
