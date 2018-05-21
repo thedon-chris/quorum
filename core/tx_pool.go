@@ -43,6 +43,7 @@ var (
 	ErrGasLimit           = errors.New("Exceeds block gas limit")
 	ErrNegativeValue      = errors.New("Negative value")
 	ErrNonExistentAccount = errors.New("Account doesn't exist")
+	ErrUnderpriced  			= errors.New("Gas value too low")
 )
 
 var (
@@ -248,9 +249,9 @@ func (pool *TxPool) SetLocal(tx *types.Transaction) {
 func (pool *TxPool) validateTx(tx *types.Transaction) error {
 	// due to dual state balances of private accounts cannot be determined.
 	// only accept transactions with a gas price of 0
-	if tx.GasPrice().Cmp(common.Big0) != 0 {
-		return ErrInvalidGasPrice
-	}
+	// if tx.GasPrice().Cmp(common.Big0) != 0 {
+	// 	return ErrInvalidGasPrice
+	// }
 
 	currentState, _, err := pool.currentState()
 	if err != nil {
@@ -292,10 +293,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 		return ErrInsufficientFunds
 	}
 
+	if pool.gasPrice.Cmp(tx.GasPrice() > 0){
+		return ErrUnderpriced
+	}
+
 	intrGas := IntrinsicGas(tx.Data(), MessageCreatesContract(tx), pool.homestead)
 	if tx.Gas().Cmp(intrGas) < 0 {
 		return ErrIntrinsicGas
 	}
+
 
 	return nil
 }
