@@ -69,6 +69,8 @@ type TxPool struct {
 	currentState stateFn // The state function which will allow us to do some pre checks
 	pendingState *state.ManagedState
 	gasLimit     func() *big.Int // The current gas limit function callback
+	//re-added gas price
+	minGasPrice  *big.Int
 	eventMux     *event.TypeMux
 	events       event.Subscription
 	localTx      *txSet
@@ -95,9 +97,11 @@ func NewTxPool(config *ChainConfig, eventMux *event.TypeMux, currentStateFn stat
 		eventMux:     eventMux,
 		currentState: currentStateFn,
 		gasLimit:     gasLimitFn,
+		//set the gas price later on andrew
+		minGasPrice:  new(big.Int),
 		pendingState: nil,
 		localTx:      newTxSet(),
-		events:       eventMux.Subscribe(ChainHeadEvent{}, RemovedTransactionEvent{}),
+		events:       eventMux.Subscribe(ChainHeadEvent{}, GasPriceChanged{}, RemovedTransactionEvent{}),
 		quit:         make(chan struct{}),
 	}
 
@@ -125,6 +129,11 @@ func (pool *TxPool) eventLoop() {
 			}
 
 			pool.resetState()
+			pool.mu.Unlock()
+		//re-added gas price change case
+		case GasPriceChanged:
+			pool.mu.Lock()
+			pool.minGasPrice = ev.Price
 			pool.mu.Unlock()
 		case RemovedTransactionEvent:
 			pool.AddBatch(ev.Txs)
@@ -252,6 +261,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 	// if tx.GasPrice().Cmp(common.Big0) != 0 {
 	// 	return ErrInvalidGasPrice
 	// }
+	//getting transactions from our local pool andrew
+	local := pool.localTx.contains(tx.Hash())
+	// Drop transactions under our own minimal accepted gas price andrew
+	if !local && pool.minGasPrice.Cmp(tx.GasPrice()) > 0 {
+		return ErrInvalidGasPrice
+	}
 
 	currentState, _, err := pool.currentState()
 	if err != nil {
@@ -293,9 +308,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 		return ErrInsufficientFunds
 	}
 
-	if tx.GasPrice().Cmp(common.Big0) > 0 {
-		return ErrUnderpriced
-	}
 
 	intrGas := IntrinsicGas(tx.Data(), MessageCreatesContract(tx), pool.homestead)
 	if tx.Gas().Cmp(intrGas) < 0 {

@@ -676,8 +676,10 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 		msg.gas = big.NewInt(50000000)
 	}
 
-	if msg.gasPrice.Cmp(common.Big0) != 0 {
-		msg.gasPrice = new(big.Int)
+	//setting the gas price properly andrew
+	if msg.gasPrice.Cmp(common.Big0) == 0 {
+		msg.gasPrice = new (big.Int).Mul(big.NewInt(50), common.Shannon)
+		// msg.gasPrice = new(big.Int)
 	}
 
 	// Execute the call and return
