@@ -240,7 +240,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.AssumeSynced, config.NetworkId, eth.eventMux, eth.txPool, eth.pow, eth.blockchain, chainDb, config.RaftMode); err != nil {
 		return nil, err
 	}
-
+	//default params added for gas price oracle andrew
 	gpoParams := &gasprice.GpoParams{
 		GpoMinGasPrice:          config.GpoMinGasPrice,
 		GpoMaxGasPrice:          config.GpoMaxGasPrice,
