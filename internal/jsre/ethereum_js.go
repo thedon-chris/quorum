@@ -3904,11 +3904,8 @@ var inputAddressFormatter = function (address) {
         return address;
     } else if (utils.isAddress(address)) {
         return '0x' + address;
-    } else {
-        console.log(address)
-        // console.log(iban.address())
     }
-    throw new Error('invalid address');
+    throw new Error('invalid address' + address);
 };
 
 
