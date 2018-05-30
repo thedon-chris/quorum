@@ -217,12 +217,13 @@ func (be *registryAPIBackend) Transact(fromStr, toStr, nonceStr, valueStr, gasSt
 	if len(toStr) > 0 && toStr != "0x" && !common.IsHexAddress(toStr) {
 		return "", errors.New("invalid address")
 	}
-
+	//Added back gas pricing and default gas pricing andrew
 	var (
 		from             = common.HexToAddress(fromStr)
 		to               = common.HexToAddress(toStr)
 		value            = common.Big(valueStr)
 		gas              *big.Int
+		price            *big.Int
 		data             []byte
 		contractCreation bool
 	)
@@ -232,7 +233,11 @@ func (be *registryAPIBackend) Transact(fromStr, toStr, nonceStr, valueStr, gasSt
 	} else {
 		gas = common.Big(gasStr)
 	}
-
+	if len(gasPriceStr) == 0 {
+		price = big.NewInt(10000000000000)
+	} else {
+		price = common.Big(gasPriceStr)
+	}
 	data = common.FromHex(codeStr)
 	if len(toStr) == 0 {
 		contractCreation = true
@@ -245,9 +250,9 @@ func (be *registryAPIBackend) Transact(fromStr, toStr, nonceStr, valueStr, gasSt
 
 	var tx *types.Transaction
 	if contractCreation {
-		tx = types.NewContractCreation(nonce, value, gas, nil, data)
+		tx = types.NewContractCreation(nonce, value, gas, price, data)
 	} else {
-		tx = types.NewTransaction(nonce, to, value, gas, nil, data)
+		tx = types.NewTransaction(nonce, to, value, gas, price, data)
 	}
 
 	signature, err := be.am.SignEthereum(from, tx.SigHash().Bytes())

@@ -20,13 +20,13 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-	"math/big"
 
 	"github.com/ethereum/ethash"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -83,6 +83,7 @@ type Config struct {
 	ExtraData []byte
 
 	Etherbase    common.Address
+	GasPrice     *big.Int
 	MinerThreads int
 	SolcPath     string
 
@@ -240,7 +241,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.AssumeSynced, config.NetworkId, eth.eventMux, eth.txPool, eth.pow, eth.blockchain, chainDb, config.RaftMode); err != nil {
 		return nil, err
 	}
-	//default params added for gas price oracle andrew
+	//default params added for gas price oracle --andrew
 	gpoParams := &gasprice.GpoParams{
 		GpoMinGasPrice:          config.GpoMinGasPrice,
 		GpoMaxGasPrice:          config.GpoMaxGasPrice,
@@ -249,7 +250,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		GpobaseStepUp:           config.GpobaseStepUp,
 		GpobaseCorrectionFactor: config.GpobaseCorrectionFactor,
 	}
-	//added the gas price oracle back in.
+	//added the gas price oracle back in. --andrew
 	gpo := gasprice.NewGasPriceOracle(eth.blockchain, chainDb, eth.eventMux, gpoParams)
 	eth.apiBackend = &EthApiBackend{eth, gpo}
 

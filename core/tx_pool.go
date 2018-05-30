@@ -35,15 +35,17 @@ import (
 
 var (
 	// Transaction Pool Errors
-	ErrInvalidSender      = errors.New("Invalid sender")
-	ErrNonce              = errors.New("Nonce too low")
-	ErrInvalidGasPrice    = errors.New("Gas price not 0")
+	ErrInvalidSender = errors.New("Invalid sender")
+	ErrNonce         = errors.New("Nonce too low")
+	// ErrInvalidGasPrice    = errors.New("Gas price not 0")
+	ErrCheap              = errors.New("Gas price too low for acceptance")
+	ErrBalance            = errors.New("Insufficient balance")
+	ErrNonExistentAccount = errors.New("Account does not exist or account balance too low")
 	ErrInsufficientFunds  = errors.New("Insufficient funds for gas * price + value")
 	ErrIntrinsicGas       = errors.New("Intrinsic gas too low")
 	ErrGasLimit           = errors.New("Exceeds block gas limit")
 	ErrNegativeValue      = errors.New("Negative value")
-	ErrNonExistentAccount = errors.New("Account doesn't exist")
-	ErrUnderpriced  			= errors.New("Gas value too low")
+	ErrUnderpriced        = errors.New("Gas value too low")
 )
 
 var (
@@ -70,11 +72,11 @@ type TxPool struct {
 	pendingState *state.ManagedState
 	gasLimit     func() *big.Int // The current gas limit function callback
 	//re-added gas price
-	minGasPrice  *big.Int
-	eventMux     *event.TypeMux
-	events       event.Subscription
-	localTx      *txSet
-	mu           sync.RWMutex
+	minGasPrice *big.Int
+	eventMux    *event.TypeMux
+	events      event.Subscription
+	localTx     *txSet
+	mu          sync.RWMutex
 
 	pending map[common.Address]*txList         // All currently processable transactions
 	queue   map[common.Address]*txList         // Queued but non-processable transactions
@@ -265,7 +267,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 	local := pool.localTx.contains(tx.Hash())
 	// Drop transactions under our own minimal accepted gas price andrew
 	if !local && pool.minGasPrice.Cmp(tx.GasPrice()) > 0 {
-		return ErrInvalidGasPrice
+		return ErrCheap
 	}
 
 	currentState, _, err := pool.currentState()
@@ -308,12 +310,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 		return ErrInsufficientFunds
 	}
 
-
 	intrGas := IntrinsicGas(tx.Data(), MessageCreatesContract(tx), pool.homestead)
 	if tx.Gas().Cmp(intrGas) < 0 {
 		return ErrIntrinsicGas
 	}
-
 
 	return nil
 }

@@ -284,10 +284,11 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs
 			return common.Hash{}, err
 		}
 	}
+	//contracts now take gas in to account
 	if args.To == nil {
-		tx = types.NewContractCreation(args.Nonce.Uint64(), args.Value.BigInt(), args.Gas.BigInt(), nil, data)
+		tx = types.NewContractCreation(args.Nonce.Uint64(), args.Value.BigInt(), args.Gas.BigInt(), args.GasPrice.BigInt(), data)
 	} else {
-		tx = types.NewTransaction(args.Nonce.Uint64(), *args.To, args.Value.BigInt(), args.Gas.BigInt(), nil, data)
+		tx = types.NewTransaction(args.Nonce.Uint64(), *args.To, args.Value.BigInt(), args.Gas.BigInt(), args.GasPrice.BigInt(), data)
 	}
 
 	signature, err := s.am.SignWithPassphrase(args.From, passwd, tx.SigHash().Bytes())
@@ -678,7 +679,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	//setting the gas price properly andrew
 	if msg.gasPrice.Cmp(common.Big0) == 0 {
-		msg.gasPrice = new (big.Int).Mul(big.NewInt(50), common.Shannon)
+		msg.gasPrice = new(big.Int).Mul(big.NewInt(50), common.Shannon)
 		// msg.gasPrice = new(big.Int)
 	}
 
@@ -1211,10 +1212,11 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 			return common.Hash{}, err
 		}
 	}
+	//make sure transactions don't set gasprice to nil --andrew
 	if args.To == nil {
-		tx = types.NewContractCreation(args.Nonce.Uint64(), args.Value.BigInt(), args.Gas.BigInt(), nil, data)
+		tx = types.NewContractCreation(args.Nonce.Uint64(), args.Value.BigInt(), args.Gas.BigInt(), args.GasPrice.BigInt(), data)
 	} else {
-		tx = types.NewTransaction(args.Nonce.Uint64(), *args.To, args.Value.BigInt(), args.Gas.BigInt(), nil, data)
+		tx = types.NewTransaction(args.Nonce.Uint64(), *args.To, args.Value.BigInt(), args.Gas.BigInt(), args.GasPrice.BigInt(), data)
 	}
 
 	signature, err := s.b.AccountManager().SignEthereum(args.From, tx.SigHash().Bytes())
@@ -1332,9 +1334,9 @@ func (tx *Tx) UnmarshalJSON(b []byte) (err error) {
 	}
 
 	if req.To == nil {
-		tx.tx = types.NewContractCreation(tx.Nonce.Uint64(), tx.Value.BigInt(), tx.GasLimit.BigInt(), nil, data)
+		tx.tx = types.NewContractCreation(tx.Nonce.Uint64(), tx.Value.BigInt(), tx.GasLimit.BigInt(), tx.GasPrice.BigInt(), data)
 	} else {
-		tx.tx = types.NewTransaction(tx.Nonce.Uint64(), *tx.To, tx.Value.BigInt(), tx.GasLimit.BigInt(), nil, data)
+		tx.tx = types.NewTransaction(tx.Nonce.Uint64(), *tx.To, tx.Value.BigInt(), tx.GasLimit.BigInt(), tx.GasPrice.BigInt(), data)
 	}
 
 	return nil
@@ -1389,9 +1391,9 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sig
 
 	var tx *types.Transaction
 	if args.To == nil {
-		tx = types.NewContractCreation(args.Nonce.Uint64(), args.Value.BigInt(), args.Gas.BigInt(), nil, common.FromHex(args.Data))
+		tx = types.NewContractCreation(args.Nonce.Uint64(), args.Value.BigInt(), args.Gas.BigInt(), args.GasPrice.BigInt(), common.FromHex(args.Data))
 	} else {
-		tx = types.NewTransaction(args.Nonce.Uint64(), *args.To, args.Value.BigInt(), args.Gas.BigInt(), nil, common.FromHex(args.Data))
+		tx = types.NewTransaction(args.Nonce.Uint64(), *args.To, args.Value.BigInt(), args.Gas.BigInt(), args.GasPrice.BigInt(), common.FromHex(args.Data))
 	}
 
 	signedTx, err := s.sign(args.From, tx)
@@ -1436,9 +1438,9 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, tx Tx, gasPrice, 
 
 			var newTx *types.Transaction
 			if tx.tx.To() == nil {
-				newTx = types.NewContractCreation(tx.tx.Nonce(), tx.tx.Value(), gasLimit.BigInt(), nil, tx.tx.Data())
+				newTx = types.NewContractCreation(tx.tx.Nonce(), tx.tx.Value(), gasLimit.BigInt(), gasPrice.BigInt(), tx.tx.Data())
 			} else {
-				newTx = types.NewTransaction(tx.tx.Nonce(), *tx.tx.To(), tx.tx.Value(), gasLimit.BigInt(), nil, tx.tx.Data())
+				newTx = types.NewTransaction(tx.tx.Nonce(), *tx.tx.To(), tx.tx.Value(), gasLimit.BigInt(), gasPrice.BigInt(), tx.tx.Data())
 			}
 			if tx.tx.IsPrivate() {
 				newTx.SetPrivate()

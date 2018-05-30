@@ -34,7 +34,7 @@ const (
 
 	// for testing
 	gpoDefaultBaseCorrectionFactor = 110
-	gpoDefaultMinGasPrice          = 10000000000000
+	gpoDefaultMinGasPrice          = 133700000000
 )
 
 type blockPriceInfo struct {
