@@ -212,7 +212,7 @@ func (be *registryAPIBackend) StorageAt(addr string, storageAddr string) string 
 }
 
 // Transact forms a transaction from the given arguments and submits it to the
-// transactio pool for execution.
+// transaction pool for execution.
 func (be *registryAPIBackend) Transact(fromStr, toStr, nonceStr, valueStr, gasStr, gasPriceStr, codeStr string) (string, error) {
 	if len(toStr) > 0 && toStr != "0x" && !common.IsHexAddress(toStr) {
 		return "", errors.New("invalid address")
