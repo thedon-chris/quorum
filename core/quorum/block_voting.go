@@ -104,6 +104,7 @@ func NewBlockVoting(bc *core.BlockChain, chainConfig *core.ChainConfig, txpool *
 		db:           db,
 		am:           accountMgr,
 		syncingChain: false,
+		gasPrice:     new(big.Int).Mul(big.NewInt(10), common.Shannon),
 	}
 
 	return bv

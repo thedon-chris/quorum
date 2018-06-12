@@ -296,8 +296,11 @@ func (self *StateTransition) TransitionDb() (ret []byte, requiredGas, usedGas *b
 
 	requiredGas = new(big.Int).Set(self.gasUsed())
 
-	self.refundGas()
-	publicState.AddBalance(self.env.Coinbase(), new(big.Int).Mul(self.gasUsed(), self.gasPrice))
+	if !isPrivate{
+		self.refundGas()
+		publicState.AddBalance(self.env.Coinbase(), new(big.Int).Mul(self.gasUsed(), self.gasPrice))
+	}
+
 
 	if isPrivate {
 		return ret, new(big.Int), new(big.Int), err

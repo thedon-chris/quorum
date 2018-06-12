@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/downloader"
+	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
@@ -39,6 +40,8 @@ var raftHasNoPending = fmt.Errorf("Raft mode has no Pending block. Use latest in
 // EthApiBackend implements ethapi.Backend for full nodes
 type EthApiBackend struct {
 	eth *Ethereum
+	//added the gasprice oracle back in --andrew
+	gpo *gasprice.GasPriceOracle
 }
 
 func (b *EthApiBackend) SetHead(number uint64) {
@@ -192,7 +195,8 @@ func (b *EthApiBackend) ProtocolVersion() int {
 }
 
 func (b *EthApiBackend) SuggestPrice(ctx context.Context) (*big.Int, error) {
-	return big.NewInt(0), nil
+	//set back the suggested gas pricing --andrew
+	return b.gpo.SuggestPrice(), nil
 }
 
 func (b *EthApiBackend) ChainDb() ethdb.Database {

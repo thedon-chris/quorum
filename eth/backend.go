@@ -20,6 +20,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -38,6 +39,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/filters"
+	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
@@ -81,6 +83,7 @@ type Config struct {
 	ExtraData []byte
 
 	Etherbase    common.Address
+	GasPrice     *big.Int
 	MinerThreads int
 	SolcPath     string
 
@@ -94,6 +97,13 @@ type Config struct {
 	MaxBlockTime uint
 	MinVoteTime  uint
 	MaxVoteTime  uint
+
+	GpoMinGasPrice          *big.Int
+	GpoMaxGasPrice          *big.Int
+	GpoFullBlockRatio       int
+	GpobaseStepDown         int
+	GpobaseStepUp           int
+	GpobaseCorrectionFactor int
 
 	RaftMode bool
 }
@@ -231,8 +241,18 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.AssumeSynced, config.NetworkId, eth.eventMux, eth.txPool, eth.pow, eth.blockchain, chainDb, config.RaftMode); err != nil {
 		return nil, err
 	}
-
-	eth.apiBackend = &EthApiBackend{eth}
+	//default params added for gas price oracle --andrew
+	gpoParams := &gasprice.GpoParams{
+		GpoMinGasPrice:          config.GpoMinGasPrice,
+		GpoMaxGasPrice:          config.GpoMaxGasPrice,
+		GpoFullBlockRatio:       config.GpoFullBlockRatio,
+		GpobaseStepDown:         config.GpobaseStepDown,
+		GpobaseStepUp:           config.GpobaseStepUp,
+		GpobaseCorrectionFactor: config.GpobaseCorrectionFactor,
+	}
+	//added the gas price oracle back in. --andrew
+	gpo := gasprice.NewGasPriceOracle(eth.blockchain, chainDb, eth.eventMux, gpoParams)
+	eth.apiBackend = &EthApiBackend{eth, gpo}
 
 	eth.blockVoting = quorum.NewBlockVoting(eth.blockchain, eth.chainConfig, eth.txPool, eth.eventMux, eth.chainDb, eth.accountManager)
 
