@@ -132,6 +132,9 @@ func main() {
 // describing whether the current runtime version is older than
 // that provided version
 func golangOlderThan(reqdVersion string) bool {
+	if reqdVersion[0:2] != "go" {
+		log.Fatalf("Format error: go version strings should begin with `go`")
+	}
 	reqdVersionNums := strings.Split(reqdVersion[2:], ".")
 	currentVersionNums := strings.Split(runtime.Version()[2:], ".")
 	for i, num := range reqdVersionNums {
