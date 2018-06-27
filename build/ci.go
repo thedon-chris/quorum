@@ -46,6 +46,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,6 +128,33 @@ func main() {
 	}
 }
 
+// Accepts a version string (e.g. 'go1.4'), returns a boolean
+// describing whether the current runtime version is older than
+// that provided version
+func golangOlderThan(reqdVersion string) bool {
+	reqdVersionNums := strings.Split(reqdVersion[2:], ".")
+	currentVersionNums := strings.Split(runtime.Version()[2:], ".")
+	for i, num := range reqdVersionNums {
+		reqInt, err := strconv.Atoi(num)
+		if err != nil {
+			log.Fatalf("Error converting part of required version number (value was %v) to an int: %v", num, err)
+		}
+		if i >= len(currentVersionNums) {
+			return true
+		}
+		currInt, err := strconv.Atoi(currentVersionNums[i])
+		if err != nil {
+			log.Fatalf("Error converting part of current version number (value was %v) to an int: %v", currentVersionNums[i], err)
+		}
+		if currInt > reqInt {
+			return false
+		} else if currInt < reqInt {
+			return true
+		}
+	}
+	return false
+}
+
 // Compiling
 
 func doInstall(cmdline []string) {
@@ -135,7 +163,7 @@ func doInstall(cmdline []string) {
 
 	// Check Go version. People regularly open issues about compilation
 	// failure with outdated Go. This should save them the trouble.
-	if runtime.Version() < "go1.4" && !strings.HasPrefix(runtime.Version(), "devel") {
+	if golangOlderThan("go1.4") && !strings.HasPrefix(runtime.Version(), "devel") {
 		log.Println("You have Go version", runtime.Version())
 		log.Println("go-ethereum requires at least Go version 1.4 and cannot")
 		log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
@@ -162,7 +190,7 @@ func buildFlags(env build.Environment) (flags []string) {
 	// is '=' and using ' ' prints a warning. However, Go < 1.5 does
 	// not support using '='.
 	sep := " "
-	if runtime.Version() > "go1.5" || strings.Contains(runtime.Version(), "devel") {
+	if !golangOlderThan("go1.5") || strings.Contains(runtime.Version(), "devel") {
 		sep = "="
 	}
 	// Set gitCommit constant via link-time assignment.
