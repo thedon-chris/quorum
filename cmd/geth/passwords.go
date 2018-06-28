@@ -41,9 +41,13 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 		vaultConfig := vaultAPI.DefaultConfig()
 		vaultConfig.Address = ctx.GlobalString(utils.VaultAddrFlag.Name)
 		vaultClient, err := vaultAPI.NewClient(vaultConfig)
+		if err != nil {
+			log.Fatalf("Error creating Vault client: %v", err)
+			return "", err
+		}
 		token, err := loginAws(vaultClient)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Error getting Vault auth token from AWS: %v", err)
 			return "", err
 		}
 		vaultClient.SetToken(token)
@@ -62,7 +66,7 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 		keyname := ctx.GlobalString(utils.VaultPasswordNameFlag.Name)
 		password, present := secret.Data[keyname]
 		if !present {
-			utils.Fatalf("fetchPasswordFromVault found a secret at specified path (%v), but secret did not contain specified key name (%v). Secret was : %v", fullSecretPath, keyname, secret.Data)
+			utils.Fatalf("fetchPasswordFromVault found a secret at specified path, but secret did not contain specified key name.")
 		}
 		return password.(string), nil
 	}
@@ -74,7 +78,6 @@ func usingVaultPassword(ctx *cli.Context) bool {
 	passwordFlags := map[cli.StringFlag]string{
 		utils.VoteAccountPasswordFlag:           strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name)),
 		utils.VoteBlockMakerAccountPasswordFlag: strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name)),
-		utils.PasswordFileFlag:                  strings.TrimSpace(ctx.GlobalString(utils.PasswordFileFlag.Name)),
 	}
 	setPassFlags := make([]string, 0)
 	for flag, val := range passwordFlags {
@@ -119,19 +122,22 @@ func getIAMRole() (string, error) {
 	profile := iam.InstanceProfileArn
 	splitArn := strings.Split(profile, "/")
 	if len(splitArn) < 2 {
-		return "", fmt.Errorf("no / character found in instance profile ARN")
+		return "", fmt.Errorf("No / character found in instance profile ARN")
 	}
 	role := splitArn[1]
 	return role, nil
 }
 
 func loginAws(v *vaultAPI.Client) (string, error) {
-	loginData, err := awsauth.GenerateLoginData("", "", "", "")
+	// Login data args are left empty so that Vault's AWSAuth implementation
+	// knows to let AWS's EnvProvider handle it.  The EnvProvider searches the
+	// environment for these values: https://github.com/aws/aws-sdk-go/blob/master/aws/credentials/env_provider.go
+	loginData, err := awsauth.GenerateLoginData( /*accessKey=*/ "" /*secretKey=*/, "" /*sessionToken=*/, "" /*headerValue=*/, "")
 	if err != nil {
 		return "", err
 	}
 	if loginData == nil {
-		return "", fmt.Errorf("got nil response from GenerateLoginData")
+		return "", fmt.Errorf("Got nil response from GenerateLoginData")
 	}
 
 	role, err := getIAMRole()
@@ -147,10 +153,13 @@ func loginAws(v *vaultAPI.Client) (string, error) {
 		return "", err
 	}
 	if secret == nil {
-		return "", fmt.Errorf("empty response from credential provider")
+		return "", fmt.Errorf("Empty secret response from credential provider.")
 	}
 	if secret.Auth == nil {
-		return "", fmt.Errorf("auth secret has no auth data")
+		return "", fmt.Errorf("Secret contains no auth data.")
+	}
+	if secret.Auth.ClientToken == nil {
+		return "", fmt.Errorf("Secret's auth data contains no client token.")
 	}
 
 	token := secret.Auth.ClientToken
