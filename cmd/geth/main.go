@@ -160,6 +160,10 @@ participating.
 		utils.MaxVoteTimeFlag,
 		utils.SingleBlockMakerFlag,
 		utils.EnableNodePermissionFlag,
+		utils.VaultAddrFlag,
+		utils.VaultPrefixFlag,
+		utils.VaultPasswordPathFlag,
+		utils.VaultPasswordNameFlag,
 		utils.PrivateConfigPathFlag,
 		utils.RaftModeFlag,
 		utils.RaftBlockTimeFlag,
@@ -275,9 +279,21 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// Start up the node itself
 	utils.StartNode(stack)
 
+	// Fetch password either from (1) plaintext pass args, (2) password file arg,
+	// or (3) Vault cred args.
+	var passwords []string
+	if ctx.GlobalIsSet(utils.PasswordFileFlag.Name) {
+		passwords = utils.MakePasswordList(ctx)
+	} else {
+		passwordResult, err := fetchPassword(ctx)
+		if err != nil {
+			utils.Fatalf("Failed to fetch password: %v", err)
+		}
+		passwords = append(passwords, passwordResult)
+	}
+
 	// Unlock any account specifically requested
 	accman := stack.AccountManager()
-	passwords := utils.MakePasswordList(ctx)
 	accounts := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for i, account := range accounts {
 		if trimmed := strings.TrimSpace(account); trimmed != "" {
@@ -301,37 +317,32 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		utils.Fatalf("Unable to attach to node: %v", err)
 	}
 
+	// Perform addt'l unlock steps depending on whether this is a
+	// maker or voter.  Observers are handled by first unlock above.
 	var (
 		voteKey      *ecdsa.PrivateKey
 		blockVoteKey *ecdsa.PrivateKey
 	)
-
-	if addr := ctx.GlobalString(utils.VoteAccountFlag.Name); addr != "" {
-		addr = strings.TrimSpace(addr)
-		var passwd []string
-		if ctx.GlobalIsSet(utils.VoteAccountPasswordFlag.Name) {
-			passwd = append(passwd, ctx.GlobalString(utils.VoteAccountPasswordFlag.Name))
-		}
-
-		unlockAccount(ctx, accman, addr, 0, passwd)
-		// unlockAccounts fatals in case the account could not be unlocked
-		voteKey, err = accman.Key(common.HexToAddress(addr))
-		if err != nil {
-			utils.Fatalf("Unable to unlock vote key: %v", err)
-		}
+	usingVoterAcct := ctx.GlobalIsSet(utils.VoteAccountFlag.Name)
+	usingBlockMakerAcct := ctx.GlobalIsSet(utils.VoteBlockMakerAccountFlag.Name)
+	if len(accounts) == 0 && !usingVoterAcct && !usingBlockMakerAcct {
+		utils.Fatalf("Was not provided an `unlock`, `voteaccount`, or `blockmakeraccount` flag, cannot launch.")
 	}
-
-	if addr := ctx.GlobalString(utils.VoteBlockMakerAccountFlag.Name); addr != "" {
-		addr = strings.TrimSpace(addr)
-		var passwd []string
-		if ctx.GlobalIsSet(utils.VoteBlockMakerAccountPasswordFlag.Name) {
-			passwd = append(passwd, ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name))
+	var addr string
+	if usingVoterAcct {
+		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteAccountFlag.Name))
+	} else if usingBlockMakerAcct {
+		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountFlag.Name))
+	}
+	if usingBlockMakerAcct || usingVoterAcct {
+		unlockAccount(ctx, accman, addr, 0, passwords)
+		if usingBlockMakerAcct {
+			blockVoteKey, err = accman.Key(common.HexToAddress(addr[2:]))
+		} else {
+			voteKey, err = accman.Key(common.HexToAddress(addr))
 		}
-		unlockAccount(ctx, accman, addr, 0, passwd)
-		// unlockAccounts fatals in case the account could not be unlocked
-		blockVoteKey, err = accman.Key(common.HexToAddress(addr[2:]))
 		if err != nil {
-			utils.Fatalf("Unable to unlock block maker key: %v", err)
+			utils.Fatalf("Unable to unlock vote or block maker key: %v", err)
 		}
 	}
 
