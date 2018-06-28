@@ -328,9 +328,6 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	if usingBlockMakerAcct && usingVoterAcct {
 		utils.Fatalf("Provided with both `voteaccount` and `blockmakeraccount` flags, only one of these should be set at a time.")
 	}
-	if len(accounts) == 0 && !usingVoterAcct && !usingBlockMakerAcct {
-		utils.Fatalf("Was not provided an `unlock`, `voteaccount`, or `blockmakeraccount` flag, cannot launch.")
-	}
 	var addr string
 	if usingVoterAcct {
 		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteAccountFlag.Name))
