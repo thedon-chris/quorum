@@ -70,8 +70,6 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 	return "", nil
 }
 
-func cliVal(ctx *cli.Context)
-
 func usingVaultPassword(ctx *cli.Context) bool {
 	passwordFlags := map[cli.StringFlag]string{
 		utils.VoteAccountPasswordFlag:           strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name)),
