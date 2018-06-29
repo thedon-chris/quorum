@@ -14,27 +14,6 @@ import (
 	awsauth "github.com/hashicorp/vault/builtin/credential/aws"
 )
 
-func fetchPassword(ctx *cli.Context) (string, error) {
-	if usingVaultPassword(ctx) {
-		return fetchPasswordFromVault(ctx)
-	}
-	return fetchPasswordFromCLI(ctx)
-}
-
-func fetchPasswordFromCLI(ctx *cli.Context) (string, error) {
-	accountPass := strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name))
-	blockPass := strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name))
-	if accountPass != "" {
-		return accountPass, nil
-	} else if blockPass != "" {
-		return blockPass, nil
-	} else {
-		utils.Fatalf("Looked for password via fetchPasswordFromCLI, but no plaintext password arguments found.")
-		// Program exits before this return, only required to quiet down compiler
-		return "", nil
-	}
-}
-
 func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 	if usingVaultPassword(ctx) {
 		// Authenticate to Vault via the AWS method
