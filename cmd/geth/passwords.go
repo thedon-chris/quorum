@@ -75,39 +75,47 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 }
 
 func usingVaultPassword(ctx *cli.Context) bool {
-	passwordFlags := map[cli.StringFlag]string{
-		utils.VoteAccountPasswordFlag:           strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name)),
-		utils.VoteBlockMakerAccountPasswordFlag: strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name)),
+	vaultFlags := map[cli.StringFlag]string{
+		utils.VaultAddrFlag:         strings.TrimSpace(ctx.GlobalString(utils.VaultAddrFlag.Name)),
+		utils.VaultPrefixFlag:       strings.TrimSpace(ctx.GlobalString(utils.VaultPrefixFlag.Name)),
+		utils.VaultPasswordNameFlag: strings.TrimSpace(ctx.GlobalString(utils.VaultPasswordNameFlag.Name)),
+		utils.VaultPasswordPathFlag: strings.TrimSpace(ctx.GlobalString(utils.VaultPasswordPathFlag.Name)),
 	}
-	setPassFlags := make([]string, 0)
-	for flag, val := range passwordFlags {
-		if val != "" {
-			setPassFlags = append(setPassFlags, flag.Name)
+	missingFlags := make([]string, 0)
+	for flag, val := range vaultFlags {
+		if val == "" {
+			missingFlags = append(missingFlags, flag.Name)
 		}
 	}
-	if len(setPassFlags) > 0 {
-		if len(setPassFlags) == 1 {
-			return false
+	switch len(missingFlags) {
+	case 0:
+		// Ensure there were no other password args before returning true.  Much safety, very check.
+		passwordFlags := map[cli.StringFlag]string{
+			utils.VoteAccountPasswordFlag:           strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name)),
+			utils.VoteBlockMakerAccountPasswordFlag: strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name)),
+			utils.PasswordFileFlag:                  strings.TrimSpace(ctx.GlobalString(utils.PasswordFileFlag.Name)),
 		}
-		utils.Fatalf("Too many (%v) password flags have been set.  Only one of the following should be supplied: %v", len(setPassFlags), setPassFlags)
-		return false
-	} else {
-		vaultFlags := map[cli.StringFlag]string{
-			utils.VaultAddrFlag:         strings.TrimSpace(ctx.GlobalString(utils.VaultAddrFlag.Name)),
-			utils.VaultPrefixFlag:       strings.TrimSpace(ctx.GlobalString(utils.VaultPrefixFlag.Name)),
-			utils.VaultPasswordNameFlag: strings.TrimSpace(ctx.GlobalString(utils.VaultPasswordNameFlag.Name)),
-			utils.VaultPasswordPathFlag: strings.TrimSpace(ctx.GlobalString(utils.VaultPasswordPathFlag.Name)),
-		}
-		missingFlags := make([]string, 0)
-		for flag, val := range vaultFlags {
-			if val == "" {
-				missingFlags = append(missingFlags, flag.Name)
+		setPassFlags := make([]string, 0)
+		for flag, val := range passwordFlags {
+			if val != "" {
+				setPassFlags = append(setPassFlags, flag.Name)
 			}
 		}
-		if len(missingFlags) > 0 {
-			utils.Fatalf("No account password specified, but missing flags required for retrieving password from Vault.  Please supply: %v", missingFlags)
+		if len(setPassFlags) > 0 {
+			utils.Fatalf("Collision: both Vault and other password flags were specified. If you are using Vault, these should not be present: %v", setPassFlags)
 		}
 		return true
+	case 1:
+		// Bad case, have one but missing another, throw an error
+		// and let 'em know what's missing
+		utils.Fatalf("Some Vault flags specified, but not enough to retrieve the password; please include: %v", missingFlags)
+		return true
+	case 2:
+		// Vanilla case, as two of these have default values
+		return false
+	default:
+		utils.Fatalf("Unexpected number of Vault args missing, two of four should always be specified via defaults.")
+		return false
 	}
 }
 
@@ -158,8 +166,8 @@ func loginAws(v *vaultAPI.Client) (string, error) {
 	if secret.Auth == nil {
 		return "", fmt.Errorf("Secret contains no auth data.")
 	}
-	if secret.Auth.ClientToken == nil {
-		return "", fmt.Errorf("Secret's auth data contains no client token.")
+	if secret.Auth.ClientToken == "" {
+		return "", fmt.Errorf("Secret's auth data contains an empty string for the client token.")
 	}
 
 	token := secret.Auth.ClientToken
