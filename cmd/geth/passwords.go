@@ -119,7 +119,12 @@ func loginAws(v *vaultAPI.Client) (string, error) {
 	// Login data args are left empty so that Vault's AWSAuth implementation
 	// knows to let AWS's EnvProvider handle it.  The EnvProvider searches the
 	// environment for these values: https://github.com/aws/aws-sdk-go/blob/master/aws/credentials/env_provider.go
-	loginData, err := awsauth.GenerateLoginData( /*accessKey=*/ "" /*secretKey=*/, "" /*sessionToken=*/, "" /*headerValue=*/, "")
+	loginData, err := awsauth.GenerateLoginData(
+		/*accessKey=*/ "",
+		/*secretKey=*/ "",
+		/*sessionToken=*/ "",
+		/*headerValue=*/ "",
+	)
 	if err != nil {
 		return "", err
 	}

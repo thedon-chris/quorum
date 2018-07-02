@@ -304,9 +304,8 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 			if usingVault {
 				if usedVault {
 					utils.Fatalf("Vault passwords only support unlocking one account, it looks like you are trying to unlock %v.", len(accounts))
-				} else {
-					usedVault = true
 				}
+				usedVault = true
 			}
 		}
 	}
