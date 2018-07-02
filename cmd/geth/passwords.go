@@ -31,11 +31,12 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 		}
 		vaultClient.SetToken(token)
 
-		// Perform the query to retrieve the password value
+		// Perform the query to retrieve the password value, then clear token for safety
 		vault := vaultClient.Logical()
 		fullSecretPath := "/" + ctx.GlobalString(utils.VaultPrefixFlag.Name) +
 			"/" + ctx.GlobalString(utils.VaultPasswordPathFlag.Name)
 		secret, err := vault.Read(fullSecretPath)
+		vaultClient.ClearToken()
 		if err != nil {
 			log.Fatal(err)
 			return "", err
@@ -86,13 +87,16 @@ func usingVaultPassword(ctx *cli.Context) bool {
 		return true
 	case 1:
 		// Bad case, have one but missing another, throw an error
-		// and let 'em know what's missing
+		// and let 'em know what's missing. Return statement is to
+		// keep compiler quiet -- fxn would never return from this fatal case.
 		utils.Fatalf("Some Vault flags specified, but not enough to retrieve the password; please include: %v", missingFlags)
 		return true
 	case 2:
 		// Vanilla case, as two of these have default values
 		return false
 	default:
+		// Return statement is to keep compiler quiet -- fxn would
+		// never return from this fatal case.
 		utils.Fatalf("Unexpected number of Vault args missing, two of four should always be specified via defaults.")
 		return false
 	}
@@ -119,6 +123,7 @@ func loginAws(v *vaultAPI.Client) (string, error) {
 	// Login data args are left empty so that Vault's AWSAuth implementation
 	// knows to let AWS's EnvProvider handle it.  The EnvProvider searches the
 	// environment for these values: https://github.com/aws/aws-sdk-go/blob/master/aws/credentials/env_provider.go
+	// The args all get their own line so the linter doesn't reshuffle quotes & comments
 	loginData, err := awsauth.GenerateLoginData(
 		/*accessKey=*/ "",
 		/*secretKey=*/ "",

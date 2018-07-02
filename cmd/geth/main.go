@@ -375,7 +375,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		} else if usingMakerPassword {
 			passwd = append(passwd, ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name))
 		} else {
-			utils.Fatalf("Tried to unlock a voter account, but no password was provided via --blockmakerpassword or Vault password.")
+			utils.Fatalf("Tried to unlock a blockmaker account, but no password was provided via --blockmakerpassword or Vault password.")
 		}
 
 		unlockAccount(ctx, accman, addr, 0, passwd)
