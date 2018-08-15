@@ -207,6 +207,7 @@ func SigToPub(hash, sig []byte) (*ecdsa.PublicKey, error) {
 // Note: the calculated signature is not Ethereum compliant. The yellow paper
 // dictates Ethereum singature to have a V value with and offset of 27 v in [27,28].
 // Use SignEthereum to get an Ethereum compliant signature.
+//However we will hardcode the V value to be 37.
 func Sign(data []byte, prv *ecdsa.PrivateKey) (sig []byte, err error) {
 	if len(data) != 32 {
 		return nil, fmt.Errorf("hash is required to be exactly 32 bytes (%d)", len(data))
@@ -228,7 +229,7 @@ func SignEthereum(data []byte, prv *ecdsa.PrivateKey) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig[64] += 27 // as described in the yellow paper
+	sig[64] += 37 // not as described in the whitepaper but instead using our spec
 	return sig, err
 }
 

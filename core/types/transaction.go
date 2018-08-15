@@ -297,14 +297,15 @@ func (tx *Transaction) SignatureValues() (v byte, r *big.Int, s *big.Int) {
 }
 
 func (tx *Transaction) IsPrivate() bool {
-	return tx.data.V == 37 || tx.data.V == 38
+	return tx.data.V == 27 || tx.data.V == 28
 }
 
+//We are changing the spec regarding what consists private transaction so now private transactions have tx.data.V equaling 27 or 28
 func (tx *Transaction) SetPrivate() {
-	if tx.data.V == 28 {
-		tx.data.V = 38
+	if tx.data.V == 38 {
+		tx.data.V = 28
 	} else {
-		tx.data.V = 37
+		tx.data.V = 27
 	}
 }
 
@@ -318,8 +319,8 @@ func (tx *Transaction) publicKey(homestead bool) ([]byte, error) {
 	sig := make([]byte, 65)
 	copy(sig[32-len(r):32], r)
 	copy(sig[64-len(s):64], s)
-	sig[64] = tx.data.V - 27
-	if tx.data.V > 28 {
+	sig[64] = tx.data.V - 37
+	if tx.data.V > 38 {
 		sig[64] -= 10
 	}
 
@@ -337,6 +338,8 @@ func (tx *Transaction) publicKey(homestead bool) ([]byte, error) {
 
 // WithSignature returns a new transaction with the given signature.
 // This signature needs to be formatted as described in the yellow paper (v+27).
+//However we are changing the above mentioned spec to meet eip155 compliance
+
 func (tx *Transaction) WithSignature(sig []byte) (*Transaction, error) {
 	if len(sig) != 65 {
 		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
