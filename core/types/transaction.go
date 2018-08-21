@@ -211,8 +211,15 @@ func (tx *Transaction) Hash() common.Hash {
 	return v
 }
 
+//DeriveChainID derives and returns the chainID as a big.Int
+func (tx *Transaction) DeriveChainID() *big.Int {
+	//currently chainid is hardcoded to 1
+	return big.NewInt(1)
+}
+
 // SigHash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
+//Adding the chainID as part of the hash
 func (tx *Transaction) SigHash() common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
@@ -221,6 +228,7 @@ func (tx *Transaction) SigHash() common.Hash {
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
+		tx.DeriveChainID(), uint(0), uint(0),
 	})
 }
 
@@ -320,6 +328,8 @@ func (tx *Transaction) publicKey(homestead bool) ([]byte, error) {
 	copy(sig[32-len(r):32], r)
 	copy(sig[64-len(s):64], s)
 	sig[64] = tx.data.V - 37
+	//Not sure what is going on here I do not fully understand why it is 10 being
+	//subtracted.
 	if tx.data.V > 38 {
 		sig[64] -= 10
 	}
