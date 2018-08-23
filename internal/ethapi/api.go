@@ -1230,7 +1230,6 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 }
 func checkRLP(ctx context.Context, encodedTx string) bool {
 	txNew := new(types.TransactionNew)
-	encoded := append('0x', encodedTx)
 	if err := rlp.DecodeBytes(encodedTx, txNew); err != nil {
 		return false
 	}
