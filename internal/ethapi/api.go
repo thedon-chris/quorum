@@ -1231,9 +1231,9 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 func checkRLP(ctx context.Context, encodedTx string) bool {
 	txNew := new(types.TransactionNew)
 	if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 // SendRawTransaction will add the signed transaction to the transaction pool.
