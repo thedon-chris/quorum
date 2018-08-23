@@ -57,6 +57,54 @@ type txdata struct {
 	R, S            *big.Int // signature
 }
 
+//brought in the struct from a more recent version of geth to use within
+//rawTransactions
+type TransactionNew struct {
+	data txdataNew
+	// caches
+	hash atomic.Value
+	size atomic.Value
+	from atomic.Value
+}
+
+type txdataNew struct {
+	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
+	Price        *big.Int        `json:"gasPrice" gencodec:"required"`
+	GasLimit     uint64          `json:"gas"      gencodec:"required"`
+	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"    gencodec:"required"`
+	Payload      []byte          `json:"input"    gencodec:"required"`
+
+	// Signature values
+	V *big.Int `json:"v" gencodec:"required"`
+	R *big.Int `json:"r" gencodec:"required"`
+	S *big.Int `json:"s" gencodec:"required"`
+
+	// This is only used when marshaling to JSON.
+	Hash *common.Hash `json:"hash" rlp:"-"`
+}
+
+//returns old Transaction type from the data of the new Transaction type
+func (t *TransactionNew) ConvertTransaction() *Transaction {
+	tx := new(Transaction)
+	tx.hash = t.hash
+	tx.size = t.size
+	tx.from = t.from
+	data := t.data
+	tx.data = txdata{
+		AccountNonce: uint64(data.AccountNonce),
+		Recipient:    data.Recipient,
+		Amount:       (*big.Int)(data.Amount),
+		GasLimit:     big.NewInt(int64(data.GasLimit)),
+		Price:        (*big.Int)(data.Price),
+		Payload:      data.Payload,
+		V:            byte(data.V.Int64()),
+		R:            (*big.Int)(data.R),
+		S:            (*big.Int)(data.S),
+	}
+	return tx
+}
+
 type jsonTransaction struct {
 	Hash         *common.Hash    `json:"hash"`
 	AccountNonce *hexUint64      `json:"nonce"`

@@ -1232,10 +1232,13 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encodedTx string) (string, error) {
-	tx := new(types.Transaction)
-	if err := rlp.DecodeBytes(common.FromHex(encodedTx), tx); err != nil {
+	txNew := new(types.TransactionNew)
+
+	if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
 		return "", err
 	}
+
+	tx := txNew.ConvertTransaction()
 
 	if err := s.b.SendTx(ctx, tx); err != nil {
 		return "", err
