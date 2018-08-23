@@ -1228,34 +1228,62 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 
 	return submitTransaction(ctx, s.b, tx, signature, isPrivate)
 }
+func checkRLP(ctx context.Context, encodedTx string) bool {
+	txNew := new(types.TransactionNew)
+	if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
+		return false
+	}
+	return true
+}
 
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encodedTx string) (string, error) {
-	txNew := new(types.TransactionNew)
-
-	if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
-		return "", err
-	}
-
-	tx := txNew.ConvertTransaction()
-
-	if err := s.b.SendTx(ctx, tx); err != nil {
-		return "", err
-	}
-
-	if tx.To() == nil {
-		from, err := tx.FromFrontier()
-		if err != nil {
+	rlpStatus := checkRLP(ctx, encodedTx)
+	if rlpStatus {
+		txNew := new(types.TransactionNew)
+		if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
+			return string(common.FromHex(encodedTx)), err
+		}
+		tx := txNew.ConvertTransaction()
+		if err := s.b.SendTx(ctx, tx); err != nil {
 			return "", err
 		}
-		addr := crypto.CreateAddress(from, tx.Nonce())
-		glog.V(logger.Info).Infof("Tx(%x) created: %x\n", tx.Hash(), addr)
-	} else {
-		glog.V(logger.Info).Infof("Tx(%x) to: %x\n", tx.Hash(), tx.To())
-	}
 
-	return tx.Hash().Hex(), nil
+		if tx.To() == nil {
+			from, err := tx.FromFrontier()
+			if err != nil {
+				return "", err
+			}
+			addr := crypto.CreateAddress(from, tx.Nonce())
+			glog.V(logger.Info).Infof("Tx(%x) created: %x\n", tx.Hash(), addr)
+		} else {
+			glog.V(logger.Info).Infof("Tx(%x) to: %x\n", tx.Hash(), tx.To())
+		}
+
+		return tx.Hash().Hex(), nil
+	} else {
+		tx := new(types.Transaction)
+		if err := rlp.DecodeBytes(common.FromHex(encodedTx), tx); err != nil {
+			return string(common.FromHex(encodedTx)), err
+		}
+		if err := s.b.SendTx(ctx, tx); err != nil {
+			return "", err
+		}
+
+		if tx.To() == nil {
+			from, err := tx.FromFrontier()
+			if err != nil {
+				return "", err
+			}
+			addr := crypto.CreateAddress(from, tx.Nonce())
+			glog.V(logger.Info).Infof("Tx(%x) created: %x\n", tx.Hash(), addr)
+		} else {
+			glog.V(logger.Info).Infof("Tx(%x) to: %x\n", tx.Hash(), tx.To())
+		}
+
+		return tx.Hash().Hex(), nil
+	}
 }
 
 // Sign calculates an ECDSA signature for:
