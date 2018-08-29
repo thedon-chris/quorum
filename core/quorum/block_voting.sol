@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.10;
  // Implements a block voting algorithm to reach consensus.
 //
 // To vote for a block the sender must be allowed to vote. When deployed the
@@ -6,7 +6,7 @@ pragma solidity ^0.4.11;
 // Note that voters can add new voters and thus have the abbility to add multiple
 // voter accounts that they control. This gives them the possibility to vote
 // multiple times for a particular block. Therefore voters must be trusted.
-contract BlockVotingDeployable {
+contract BlockVoting {
     // Raised when a vote is made
     event Vote(address indexed sender, uint blockNumber, bytes32 blockHash);
     // Raised when a new address is allowed to vote.
