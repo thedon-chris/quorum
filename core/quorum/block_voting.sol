@@ -43,7 +43,7 @@ contract BlockVoting {
         _;
 	}
  	// Only allow addresses that are allowed to create blocks.
-    address constant public governanceAddress = 0x0000000000000000000000000000000000000042;
+    address constant public governanceAddress = 0x000000000000000000000000000000000000002a;
     modifier mustBeGovernance() {
         require(msg.sender == governanceAddress);
         _;
