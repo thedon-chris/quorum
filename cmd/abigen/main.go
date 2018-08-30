@@ -108,10 +108,6 @@ func main() {
 		types = append(types, kind)
 	}
 	// Generate the contract binding
-	fmt.Println("types: ", types)
-	fmt.Println("abis: ", abis)
-	fmt.Println("bins: ", bins)
-	fmt.Println("pkgFlag: ", pkgFlag)
 	code, err := bind.Bind(types, abis, bins, *pkgFlag)
 	if err != nil {
 		fmt.Printf("Failed to generate ABI binding: %v\n", err)
