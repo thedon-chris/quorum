@@ -84,27 +84,6 @@ type txdataNew struct {
 	Hash *common.Hash `json:"hash" rlp:"-"`
 }
 
-//returns old Transaction type from the data of the new Transaction type
-func (t *TransactionNew) ConvertTransaction() *Transaction {
-	tx := new(Transaction)
-	tx.hash = t.hash
-	tx.size = t.size
-	tx.from = t.from
-	data := t.data
-	tx.data = txdata{
-		AccountNonce: uint64(data.AccountNonce),
-		Recipient:    data.Recipient,
-		Amount:       (*big.Int)(data.Amount),
-		GasLimit:     big.NewInt(int64(data.GasLimit)),
-		Price:        (*big.Int)(data.Price),
-		Payload:      data.Payload,
-		V:            byte(data.V.Int64()),
-		R:            (*big.Int)(data.R),
-		S:            (*big.Int)(data.S),
-	}
-	return tx
-}
-
 type jsonTransaction struct {
 	Hash         *common.Hash    `json:"hash"`
 	AccountNonce *hexUint64      `json:"nonce"`
@@ -163,9 +142,53 @@ func NewTransaction(nonce uint64, to common.Address, amount, gasLimit, gasPrice 
 	return &Transaction{data: d}
 }
 
+// convertTransaction creates a new transaction with the given fields.
+func convertTransaction(nonce uint64, to common.Address, amount, gasLimit, gasPrice *big.Int, data []byte, V *big.Int, R *big.Int, S *big.Int) *Transaction {
+	if len(data) > 0 {
+		data = common.CopyBytes(data)
+	}
+	d := txdata{
+		AccountNonce: nonce,
+		Recipient:    &to,
+		Payload:      data,
+		Amount:       new(big.Int),
+		GasLimit:     new(big.Int),
+		Price:        new(big.Int),
+		V:            byte(V.Int64()),
+		R:            new(big.Int).Set(R),
+		S:            new(big.Int).Set(S),
+	}
+	if amount != nil {
+		d.Amount.Set(amount)
+	}
+	if gasLimit != nil {
+		d.GasLimit.Set(gasLimit)
+	}
+	//Added the check for gaspricing
+	if gasPrice != nil {
+		d.Price.Set(gasPrice)
+	}
+	return &Transaction{data: d}
+}
+
+//returns old Transaction type from the data of the new Transaction type
+func (t *TransactionNew) ConvertTransaction() *Transaction {
+	return convertTransaction(t.data.AccountNonce, *t.data.Recipient, t.data.Amount, big.NewInt(int64(t.data.GasLimit)), t.data.Price, t.data.Payload, t.data.V, t.data.R, t.data.S)
+}
+
 // DecodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &tx.data)
+}
+
+// DecodeRLP implements rlp.Decoder
+func (tx *TransactionNew) DecodeRLP(s *rlp.Stream) error {
+	_, size, _ := s.Kind()
+	err := s.Decode(&tx.data)
+	if err == nil {
+		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+	}
+	return err
 }
 
 // DecodeRLP implements rlp.Decoder
@@ -375,10 +398,8 @@ func (tx *Transaction) publicKey(homestead bool) ([]byte, error) {
 	sig := make([]byte, 65)
 	copy(sig[32-len(r):32], r)
 	copy(sig[64-len(s):64], s)
-	sig[64] = tx.data.V - 37
-	//Not sure what is going on here I do not fully understand why it is 10 being
-	//subtracted.
-	if tx.data.V > 38 {
+	sig[64] = tx.data.V - 27
+	if tx.data.V > 28 {
 		sig[64] -= 10
 	}
 
@@ -396,7 +417,7 @@ func (tx *Transaction) publicKey(homestead bool) ([]byte, error) {
 
 // WithSignature returns a new transaction with the given signature.
 // This signature needs to be formatted as described in the yellow paper (v+27).
-//However we are changing the above mentioned spec to meet eip155 compliance
+// However we are changing the above mentioned spec to meet eip155 compliance
 
 func (tx *Transaction) WithSignature(sig []byte) (*Transaction, error) {
 	if len(sig) != 65 {
