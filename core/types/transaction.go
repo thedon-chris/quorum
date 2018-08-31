@@ -57,6 +57,33 @@ type txdata struct {
 	R, S            *big.Int // signature
 }
 
+//brought in the struct from a more recent version of geth to use within
+//rawTransactions
+type TransactionNew struct {
+	data txdataNew
+	// caches
+	hash atomic.Value
+	size atomic.Value
+	from atomic.Value
+}
+
+type txdataNew struct {
+	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
+	Price        *big.Int        `json:"gasPrice" gencodec:"required"`
+	GasLimit     uint64          `json:"gas"      gencodec:"required"`
+	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"    gencodec:"required"`
+	Payload      []byte          `json:"input"    gencodec:"required"`
+
+	// Signature values
+	V *big.Int `json:"v" gencodec:"required"`
+	R *big.Int `json:"r" gencodec:"required"`
+	S *big.Int `json:"s" gencodec:"required"`
+
+	// This is only used when marshaling to JSON.
+	Hash *common.Hash `json:"hash" rlp:"-"`
+}
+
 type jsonTransaction struct {
 	Hash         *common.Hash    `json:"hash"`
 	AccountNonce *hexUint64      `json:"nonce"`
@@ -111,6 +138,40 @@ func NewTransaction(nonce uint64, to common.Address, amount, gasLimit, gasPrice 
 	return &Transaction{data: d}
 }
 
+// convertTransaction creates a new transaction with the given fields.
+func convertTransaction(nonce uint64, to common.Address, amount, gasLimit, gasPrice *big.Int, data []byte, V *big.Int, R *big.Int, S *big.Int) *Transaction {
+	if len(data) > 0 {
+		data = common.CopyBytes(data)
+	}
+	d := txdata{
+		AccountNonce: nonce,
+		Recipient:    &to,
+		Payload:      data,
+		Amount:       new(big.Int),
+		GasLimit:     new(big.Int),
+		Price:        new(big.Int),
+		V:            byte(V.Int64()),
+		R:            new(big.Int).Set(R),
+		S:            new(big.Int).Set(S),
+	}
+	if amount != nil {
+		d.Amount.Set(amount)
+	}
+	if gasLimit != nil {
+		d.GasLimit.Set(gasLimit)
+	}
+	//Added the check for gaspricing
+	if gasPrice != nil {
+		d.Price.Set(gasPrice)
+	}
+	return &Transaction{data: d}
+}
+
+//returns old Transaction type from the data of the new Transaction type
+func (t *TransactionNew) ConvertTransaction() *Transaction {
+	return convertTransaction(t.data.AccountNonce, *t.data.Recipient, t.data.Amount, big.NewInt(int64(t.data.GasLimit)), t.data.Price, t.data.Payload, t.data.V, t.data.R, t.data.S)
+}
+
 // DecodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &tx.data)
@@ -118,6 +179,16 @@ func (tx *Transaction) EncodeRLP(w io.Writer) error {
 
 // DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
+	_, size, _ := s.Kind()
+	err := s.Decode(&tx.data)
+	if err == nil {
+		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+	}
+	return err
+}
+
+// DecodeRLP implements rlp.Decoder
+func (tx *TransactionNew) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
 	err := s.Decode(&tx.data)
 	if err == nil {
@@ -293,14 +364,15 @@ func (tx *Transaction) SignatureValues() (v byte, r *big.Int, s *big.Int) {
 }
 
 func (tx *Transaction) IsPrivate() bool {
-	return tx.data.V == 37 || tx.data.V == 38
+	return tx.data.V == 27 || tx.data.V == 28
 }
 
+//We are changing the spec regarding what consists private transaction so now private transactions have tx.data.V equaling 27 or 28
 func (tx *Transaction) SetPrivate() {
-	if tx.data.V == 28 {
-		tx.data.V = 38
+	if tx.data.V == 38 {
+		tx.data.V = 28
 	} else {
-		tx.data.V = 37
+		tx.data.V = 27
 	}
 }
 
