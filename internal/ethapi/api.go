@@ -1223,7 +1223,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	return submitTransaction(ctx, s.b, tx, signature, isPrivate)
 }
 
-func checkRLP(ctx context.Content, encodedTx string) (*types.TransactionNew, bool) {
+func checkRLP(ctx context.Context, encodedTx string) (*types.TransactionNew, bool) {
 	txNew := new(types.TransactionNew)
 	if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
 		return txNew, false
