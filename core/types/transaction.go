@@ -573,6 +573,7 @@ func (s TxByPriority) Less(i, j int) bool {
 
 	// in case iReceipt is towards the voting contract and jRecipient is not towards the voting contract
 	// iReceipt is "smaller".
+	// TODO: also make it so that we prioritize by validators sending to the voting contract.
 	return iRecipient != nil && *iRecipient == params.QuorumVotingContractAddr && (jRecipient == nil || *jRecipient != params.QuorumVotingContractAddr)
 }
 
