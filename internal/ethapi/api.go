@@ -1243,7 +1243,7 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	txNew, rlpStatus := checkRLP(ctx, encodedTx)
 	tx := new(types.Transaction)
 	if rlpStatus {
-		tx := txNew.ConvertTransaction()
+		tx = txNew.ConvertTransaction()
 	} else {
 		if err := rlp.DecodeBytes(common.FromHex(encodedTx), tx); err != nil {
 			return "", err
