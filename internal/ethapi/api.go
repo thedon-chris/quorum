@@ -279,6 +279,8 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs
 	data := common.FromHex(args.Data)
 	isPrivate := args.PrivateFor != nil
 	if isPrivate {
+		//This overwrites transaction data with the hash of private transaction's
+		//encrypted payload
 		data, err = private.P.Send(data, args.PrivateFrom, args.PrivateFor)
 		if err != nil {
 			return common.Hash{}, err

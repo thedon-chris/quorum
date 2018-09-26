@@ -182,6 +182,16 @@ func (tx *Transaction) EncodeRLP(w io.Writer) error {
 }
 
 // DecodeRLP implements rlp.Decoder
+func (tx *TransactionNew) DecodeRLP(s *rlp.Stream) error {
+	_, size, _ := s.Kind()
+	err := s.Decode(&tx.data)
+	if err == nil {
+		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+	}
+	return err
+}
+
+// DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
 	err := s.Decode(&tx.data)
@@ -282,8 +292,15 @@ func (tx *Transaction) Hash() common.Hash {
 	return v
 }
 
+//DeriveChainID derives and returns the chainID as a big.Int
+func (tx *Transaction) DeriveChainID() *big.Int {
+	//currently chainid is hardcoded to 1
+	return big.NewInt(1)
+}
+
 // SigHash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
+//Adding the chainID as part of the hash
 func (tx *Transaction) SigHash() common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
@@ -292,6 +309,7 @@ func (tx *Transaction) SigHash() common.Hash {
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
+		tx.DeriveChainID(), uint(0), uint(0),
 	})
 }
 
@@ -409,6 +427,8 @@ func (tx *Transaction) publicKey(homestead bool) ([]byte, error) {
 
 // WithSignature returns a new transaction with the given signature.
 // This signature needs to be formatted as described in the yellow paper (v+27).
+// However we are changing the above mentioned spec to meet eip155 compliance
+
 func (tx *Transaction) WithSignature(sig []byte) (*Transaction, error) {
 	if len(sig) != 65 {
 		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
@@ -563,6 +583,7 @@ func (s TxByPriority) Less(i, j int) bool {
 
 	// in case iReceipt is towards the voting contract and jRecipient is not towards the voting contract
 	// iReceipt is "smaller".
+	// TODO: also make it so that we prioritize by validators sending to the voting contract.
 	return iRecipient != nil && *iRecipient == params.QuorumVotingContractAddr && (jRecipient == nil || *jRecipient != params.QuorumVotingContractAddr)
 }
 
