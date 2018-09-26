@@ -1227,12 +1227,25 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	return submitTransaction(ctx, s.b, tx, signature, isPrivate)
 }
 
+func checkRLP(ctx context.Context, encodedTx string) (*types.TransactionNew, bool) {
+	txNew := new(types.TransactionNew)
+	if err := rlp.DecodeBytes(common.FromHex(encodedTx), txNew); err != nil {
+		return txNew, false
+	}
+	return txNew, true
+}
+
 // SendRawTransaction will add the signed transaction to the transaction pool.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encodedTx string) (string, error) {
+	txNew, rlpStatus := checkRLP(ctx, encodedTx)
 	tx := new(types.Transaction)
-	if err := rlp.DecodeBytes(common.FromHex(encodedTx), tx); err != nil {
-		return "", err
+	if rlpStatus {
+		tx = txNew.ConvertTransaction()
+	} else {
+		if err := rlp.DecodeBytes(common.FromHex(encodedTx), tx); err != nil {
+			return "", err
+		}
 	}
 
 	if err := s.b.SendTx(ctx, tx); err != nil {

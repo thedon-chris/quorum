@@ -228,7 +228,8 @@ func SignEthereum(data []byte, prv *ecdsa.PrivateKey) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig[64] += 27 // as described in the yellow paper
+	sig[64] += 37 //We changed the default v value to reflect the eip155 spec of
+	// so by default v is now 37
 	return sig, err
 }
 
