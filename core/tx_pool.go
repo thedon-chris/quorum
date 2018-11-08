@@ -283,6 +283,20 @@ func (pool *TxPool) validateTx(tx *types.Transaction) error {
 	// Make sure the account exist. Non existent accounts
 	// haven't got funds and well therefor never pass.
 	if !currentState.Exist(from) {
+		fmt.Println("******************************\n")
+		fmt.Println("Could not find account for address : ", from)
+		fmt.Println("")
+		fmt.Println("Other transaction details follow for sake of easier debugging:")
+		fmt.Println("hash: ", tx.Hash())
+		fmt.Println("payload: ", tx.Data())
+		fmt.Println("nonce: ", tx.Nonce())
+		fmt.Println("recipient: ", tx.To())
+		fmt.Println("amount: ", tx.Value())
+		v, r, s := tx.SignatureValues()
+		fmt.Println("v: ", v)
+		fmt.Println("r: ", r)
+		fmt.Println("s: ", s)
+		fmt.Println("\n******************************")
 		return ErrNonExistentAccount
 	}
 
