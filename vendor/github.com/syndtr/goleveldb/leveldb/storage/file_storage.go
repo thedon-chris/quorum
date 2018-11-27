@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -78,7 +79,7 @@ func OpenFile(path string, readOnly bool) (Storage, error) {
 		return nil, err
 	}
 
-	flock, err := newFileLock(filepath.Join(path, "LOCK"), readOnly)
+	flock, err := newFileLock(filepath.Join(path, fmt.Sprintf("LOCK-%v", rand.Int())), readOnly)
 	if err != nil {
 		return nil, err
 	}
