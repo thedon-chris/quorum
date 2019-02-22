@@ -131,7 +131,8 @@ func (tx *Transaction) Protected() bool {
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
-		return v != 27 && v != 28
+		// 27 / 28 are pre eip 155 -- ie unprotected.
+		return !(v == 27 || v == 28)
 	}
 	// anything not 27 or 28 are considered unprotected
 	return true
